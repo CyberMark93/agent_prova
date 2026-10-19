@@ -1,4 +1,16 @@
+# Ambiente virtuale
 .venv/
+venv/
+
+# Python
 __pycache__/
 *.pyc
+
+# Configurazione locale e segreti (l'esempio resta tracciato)
 .env
+.env.*
+!.env.example
+
+# Pesi dei modelli
+*.gguf
+*.safetensors
