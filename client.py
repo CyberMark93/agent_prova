@@ -1,8 +1,10 @@
 """Client sincrono per un modello locale (LM Studio, JSON su HTTP).
 
-Senza argomenti: una sola chiamata con domanda fissa. Con --chat: ciclo di conversazione.
+Senza argomenti: una sola chiamata con domanda fissa. Con --chat: ciclo di
+conversazione. La risposta arriva sempre in streaming, stampata a frammenti.
 """
 import argparse
+import json
 import os
 import sys
 
@@ -32,23 +34,25 @@ def load_config(path=ENV_PATH):
 
 
 def build_payload(model, messages, max_tokens):
-    """Costruisce il corpo JSON della richiesta."""
+    """Costruisce il corpo JSON della richiesta (risposta in streaming)."""
     return {
         "model": model,
         "messages": messages,
         "temperature": TEMPERATURE,
         "max_tokens": max_tokens,
-        "stream": False,
+        "stream": True,
     }
 
 
-def send_request(base_url, payload):
-    """POST su {base_url}/chat/completions; restituisce il testo della risposta."""
+def send_request(base_url, payload, prefix=""):
+    """POST in streaming su {base_url}/chat/completions; stampa i frammenti via via
+    e restituisce il testo completo e il finish_reason."""
     try:
         response = requests.post(
             f"{base_url}/chat/completions",
             json=payload,
             timeout=(5, 120),
+            stream=True,
         )
     except requests.exceptions.Timeout:
         sys.exit("Attesa scaduta: controllare server, carico e tempi.")
@@ -61,9 +65,29 @@ def send_request(base_url, payload):
         response.raise_for_status()
     except requests.exceptions.HTTPError:
         sys.exit(f"Errore HTTP: {response.status_code} {response.text}")
-    data = response.json()
-    choice = data["choices"][0]
-    return choice["message"]["content"], choice.get("finish_reason")
+
+    print(prefix, end="", flush=True)
+    testo = ""
+    finish_reason = None
+    with response:
+        for riga in response.iter_lines():
+            if not riga:
+                continue
+            riga = riga.decode("utf-8")
+            if not riga.startswith("data: "):
+                continue
+            dati = riga[len("data: "):]
+            if dati == "[DONE]":
+                break
+            chunk = json.loads(dati)["choices"][0]
+            frammento = chunk.get("delta", {}).get("content") or ""
+            if frammento:
+                print(frammento, end="", flush=True)
+                testo += frammento
+            if chunk.get("finish_reason"):
+                finish_reason = chunk["finish_reason"]
+    print()
+    return testo, finish_reason
 
 
 def warn_if_incomplete(reply, finish_reason):
@@ -80,7 +104,6 @@ def run_single(base_url, model):
         {"role": "user", "content": QUESTION},
     ]
     reply, finish_reason = send_request(base_url, build_payload(model, messages, MAX_TOKENS_SINGLE))
-    print(reply)
     warn_if_incomplete(reply, finish_reason)
 
 
@@ -99,7 +122,9 @@ def run_chat(base_url, model):
             break
         messages.append({"role": "user", "content": text})
         try:
-            reply, finish_reason = send_request(base_url, build_payload(model, messages, MAX_TOKENS_CHAT))
+            reply, finish_reason = send_request(
+                base_url, build_payload(model, messages, MAX_TOKENS_CHAT), prefix="Gemma> "
+            )
         except KeyboardInterrupt:
             print()
             break
@@ -108,7 +133,6 @@ def run_chat(base_url, model):
             warn_if_incomplete(reply, finish_reason)
             continue
         messages.append({"role": "assistant", "content": reply})
-        print(f"Gemma> {reply}")
         warn_if_incomplete(reply, finish_reason)
 
 
