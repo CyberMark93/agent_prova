@@ -17,7 +17,7 @@ Riferimento: confronto tra `client.py`/repository attuale e `LLM_Lez_3.pdf`. Ord
 
 ## 3. Modulo D — Disciplina dei commit — [~] PARZIALE — Opzione 2 adottata, Opzione 1 ancora aperta
 
-- **Problema originale**: il commit `76ceef7 feat: client LM Studio (singola + chat)` bundla Estensione 1 (input da terminale) ed Estensione 3 (history in memoria) in un solo commit, saltando l'Estensione 2 (streaming) e senza diff isolabili per estensione — in contrasto con slide 29/31 ("un commit per estensione verificata").
+- **Problema originale**: il commit `76ceef7 feat: client LM Studio (singola + chat)` bundla Estensione 1 (input da terminale) ed Estensione 3 (history in memoria) in un solo commit, saltando l'Estensione 2 (streaming, implementata solo dopo — vedi sezione dedicata sotto) e senza diff isolabili per estensione — in contrasto con slide 29/31 ("un commit per estensione verificata").
 - [x] **Opzione 2 applicata**: da questa sessione in avanti, un commit per unità logica. Esempio: `b90131b refactor(client)` (Modulo A), `1d4793f docs(claude)` (correzioni claude.md), `fccb75e docs` (nuovi file di processo) — tre commit distinti invece di uno bundlato, nonostante la richiesta iniziale fosse "un commit intelligente di tutto il progetto".
 - [ ] **Opzione 1 ancora aperta**: il commit storico `76ceef7` resta bundlato e non atomico. Non toccato (riscrivere la cronologia è distruttivo, richiede conferma esplicita separata se lo si vuole fare per la consegna finale).
 
@@ -28,6 +28,13 @@ Riferimento: confronto tra `client.py`/repository attuale e `LLM_Lez_3.pdf`. Ord
 - [x] `CLAUDE.md`: regola dipendenze + criterio di approvazione unificati in una checklist riusabile per ogni piano, non più un fatto storico fissato ("nessuna nuova dipendenza" letta alla lettera contraddiceva il Modulo A già confermato).
 - [x] Rimossa da `CLAUDE.md` la domanda FileNotFoundError + criteri di riuscita (contenuto di task, non convenzione di progetto per la tassonomia di slide 10) — la domanda resta documentata in `HOW-TO-USE.md`; i criteri sono già coperti in sostanza dalla tabella errori lì presente.
 - [ ] `README.md` non documenta ancora la modalità `--chat` né lo stack `requests`/`python-dotenv` — **unico punto rimasto del Modulo E**, da fare dopo C e D per riflettere lo stato finale.
+
+## 5. Estensione 2 — Streaming — [x] COMPLETATA, confermata (fuori sequenza A/C/D/E)
+
+- **Problema originale**: mai implementata (audit iniziale: `build_payload()` aveva `"stream": False` fisso, nessuna gestione di eventi SSE).
+- **Fatto** (rif. slide 27 del PDF): `send_request()` ora invia `"stream": true`, apre la risposta con `requests.post(..., stream=True)`, legge `iter_lines()` fino a `data: [DONE]`, stampa ogni frammento (`flush=True`) e accumula testo + `finish_reason`. `run_single`/`run_chat` non ristampano più il blocco intero (duplicherebbe l'output già stampato a frammenti) — `run_chat` passa `prefix="Gemma> "`.
+- Verificato: modalità singola con budget di token alzato temporaneamente (risposta completa, formattata, nessun troncamento), modalità `--chat` con input pipe (prefisso corretto, uscita pulita con `esci`). Ripristinato `MAX_TOKENS_SINGLE` dopo il test.
+- Conseguenza per il Modulo D: delle tre estensioni del Blocco 8, ora solo 1 e 3 restano bundlate nel commit storico `76ceef7` — lo streaming (2) non c'entra con quel debito, è stato implementato e committato separatamente in questa sessione.
 
 ---
 
