@@ -3,11 +3,11 @@
 Senza argomenti: una sola chiamata con domanda fissa. Con --chat: ciclo di conversazione.
 """
 import argparse
-import json
 import os
 import sys
-import urllib.error
-import urllib.request
+
+import requests
+from dotenv import load_dotenv
 
 SYSTEM_PROMPT = "Rispondi in italiano."
 QUESTION = "Che cosa controllare se Python segnala FileNotFoundError?"
@@ -19,22 +19,16 @@ ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 
 
 def load_config(path=ENV_PATH):
-    """Legge LM_BASE_URL e MODEL da .env; esce con messaggio chiaro se mancano."""
-    values = {}
-    try:
-        with open(path, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, _, value = line.partition("=")
-                values[key.strip()] = value.strip().strip('"').strip("'")
-    except FileNotFoundError:
+    """Legge LM_BASE_URL e LM_MODEL da .env; esce con messaggio chiaro se mancano."""
+    if not os.path.isfile(path):
         sys.exit(f"File di configurazione non trovato: {path}. Copia .env.example in .env e compilalo.")
-    missing = [k for k in ("LM_BASE_URL", "MODEL") if not values.get(k)]
-    if missing:
+    load_dotenv(path, override=False)
+    base_url = os.environ.get("LM_BASE_URL")
+    model = os.environ.get("LM_MODEL")
+    if not base_url or not model:
+        missing = [k for k, v in (("LM_BASE_URL", base_url), ("LM_MODEL", model)) if not v]
         sys.exit(f"Config mancante: {', '.join(missing)}. Compila il file .env.")
-    return values["LM_BASE_URL"].rstrip("/"), values["MODEL"]
+    return base_url.rstrip("/"), model
 
 
 def build_payload(model, messages, max_tokens):
@@ -50,22 +44,24 @@ def build_payload(model, messages, max_tokens):
 
 def send_request(base_url, payload):
     """POST su {base_url}/chat/completions; restituisce il testo della risposta."""
-    request = urllib.request.Request(
-        f"{base_url}/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError:
-        raise
-    except urllib.error.URLError as exc:
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            json=payload,
+            timeout=(5, 120),
+        )
+    except requests.exceptions.Timeout:
+        sys.exit("Attesa scaduta: controllare server, carico e tempi.")
+    except requests.exceptions.ConnectionError:
         sys.exit(
-            f"Server non raggiungibile su {base_url} ({exc.reason}). "
+            f"Connessione fallita su {base_url}: controllare server, URL e porta. "
             "Avvialo con: lms server start"
         )
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError:
+        sys.exit(f"Errore HTTP: {response.status_code} {response.text}")
+    data = response.json()
     choice = data["choices"][0]
     return choice["message"]["content"], choice.get("finish_reason")
 

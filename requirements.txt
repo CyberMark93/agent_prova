@@ -1,2 +1,4 @@
 # Protocollo di dialogo con il modello locale: JSON su HTTP (LM Studio, POST /v1/chat/completions)
-# Nessuna dipendenza esterna: client.py usa solo urllib e json della libreria standard.
+# Dipendenze concordate: requests (trasporto HTTP) e python-dotenv (lettura .env).
+requests==2.34.2
+python-dotenv==1.2.4
