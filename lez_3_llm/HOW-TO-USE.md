@@ -48,7 +48,7 @@ lms server status
 .\.venv\Scripts\python.exe client.py
 ```
 
-Invia `SYSTEM_PROMPT` ("Rispondi in italiano.") + `QUESTION` ("Che cosa controllare se Python segnala FileNotFoundError?"), stampa il testo di risposta.
+Invia `SYSTEM_PROMPT` ("Rispondi in italiano.") + `QUESTION` ("Che cosa controllare se Python segnala FileNotFoundError?"), stampa il testo di risposta **in streaming**, a frammenti man mano che il modello li genera.
 
 **Modalità chat** (ciclo di conversazione):
 
@@ -56,7 +56,7 @@ Invia `SYSTEM_PROMPT` ("Rispondi in italiano.") + `QUESTION` ("Che cosa controll
 .\.venv\Scripts\python.exe client.py --chat
 ```
 
-Legge domande da terminale (`input()`), mantiene la cronologia della conversazione in una lista Python in memoria (persa alla chiusura del processo), la reinvia per intero a ogni turno. Uscita con la parola `esci` o `Ctrl+C`.
+Legge domande da terminale (`input()`), mantiene la cronologia della conversazione in una lista Python in memoria (persa alla chiusura del processo), la reinvia per intero a ogni turno. Ogni risposta è preceduta da `Gemma> ` e stampata in streaming. Uscita con la parola `esci` o `Ctrl+C`.
 
 ## Comportamento sui limiti di token
 
@@ -68,16 +68,17 @@ Legge domande da terminale (`input()`), mantiene la cronologia della conversazio
 |---|---|---|
 | `File di configurazione non trovato: ...` | `.env` assente | Copiare `.env.example` in `.env` |
 | `Config mancante: LM_BASE_URL, LM_MODEL` | Una o entrambe le variabili sono vuote/assenti in `.env` | Aprire `.env` e compilarle |
-| `Server non raggiungibile su ... Avvialo con: lms server start` | LM Studio non è in ascolto, oppure URL/porta errati | `lms server status`; verificare `LM_BASE_URL` |
+| `Attesa scaduta: controllare server, carico e tempi.` | Il server non risponde entro il timeout (connessione o lettura) | Server vivo ma lento/sovraccarico — non necessariamente spento |
+| `Connessione fallita su ... Avvialo con: lms server start` | LM Studio non è in ascolto, oppure URL/porta errati | `lms server status`; verificare `LM_BASE_URL` |
+| `Errore HTTP: <status> <corpo>` | Il server ha risposto ma con un errore (es. ID modello inesistente, richiesta malformata) | Leggere il corpo stampato — contiene il motivo esatto |
 
-**Limite noto, in lavorazione (Modulo C di `TODO.MD`):** un errore HTTP del server (es. ID modello inesistente, richiesta malformata) produce al momento un traceback Python grezzo, non un messaggio comprensibile — il ramo che lo gestisce nel codice lo rilancia senza stamparlo. Non confondere questo caso con "server non raggiungibile": il server qui risponde, ma con un errore.
+I tre messaggi sopra (timeout, connessione, HTTP) sono rami distinti in `send_request()`: non confondere un server lento (timeout) con uno spento (connessione fallita) o con uno che risponde ma rifiuta la richiesta (errore HTTP).
 
 ## Limiti noti allo stato attuale
 
-- Nessuno streaming: la risposta arriva tutta insieme a generazione completata, non a frammenti.
 - La cronologia della chat vive solo nella memoria del processo: nessun file, nessun database, persa a ogni riavvio.
 - Nessuna persistenza, nessun tool-calling, nessuna lettura di file esterni da parte del modello.
 
 ## Relazione con README.md
 
-`README.md` descrive la preparazione dell'ambiente ma, al momento, non riflette ancora la migrazione a `requests`/`python-dotenv` né la modalità `--chat` (sincronizzazione pianificata nel Modulo E di `TODO.MD`). In caso di discrepanza tra i due documenti, questo file è quello tenuto aggiornato ad ogni modifica di comportamento.
+`README.md` descrive la preparazione dell'ambiente ed è sincronizzato con lo stato attuale (dipendenze `requests`/`python-dotenv`, modalità `--chat`, streaming). Per i dettagli funzionali (messaggi di errore, limiti noti, comportamento sui token) resta questo file la fonte aggiornata ad ogni modifica di comportamento osservabile.

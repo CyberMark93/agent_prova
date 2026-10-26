@@ -7,7 +7,6 @@ import argparse
 import json
 import os
 import sys
-
 import requests
 from dotenv import load_dotenv
 
@@ -18,7 +17,6 @@ MAX_TOKENS_SINGLE = 512
 MAX_TOKENS_CHAT = 512
 EXIT_WORD = "esci"
 ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-
 
 def load_config(path=ENV_PATH):
     """Legge LM_BASE_URL e LM_MODEL da .env; esce con messaggio chiaro se mancano."""
@@ -32,7 +30,6 @@ def load_config(path=ENV_PATH):
         sys.exit(f"Config mancante: {', '.join(missing)}. Compila il file .env.")
     return base_url.rstrip("/"), model
 
-
 def build_payload(model, messages, max_tokens):
     """Costruisce il corpo JSON della richiesta (risposta in streaming)."""
     return {
@@ -42,7 +39,6 @@ def build_payload(model, messages, max_tokens):
         "max_tokens": max_tokens,
         "stream": True,
     }
-
 
 def send_request(base_url, payload, prefix=""):
     """POST in streaming su {base_url}/chat/completions; stampa i frammenti via via
@@ -89,14 +85,12 @@ def send_request(base_url, payload, prefix=""):
     print()
     return testo, finish_reason
 
-
 def warn_if_incomplete(reply, finish_reason):
     """Segnala risposta vuota o troncata (il modello ragiona prima di rispondere)."""
     if not reply.strip():
         print("[Risposta vuota: token esauriti nel ragionamento. Riprova o alza MAX_TOKENS.]")
     elif finish_reason == "length":
         print("[Risposta troncata dal limite di token.]")
-
 
 def run_single(base_url, model):
     messages = [
@@ -105,7 +99,6 @@ def run_single(base_url, model):
     ]
     reply, finish_reason = send_request(base_url, build_payload(model, messages, MAX_TOKENS_SINGLE))
     warn_if_incomplete(reply, finish_reason)
-
 
 def run_chat(base_url, model):
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -135,7 +128,6 @@ def run_chat(base_url, model):
         messages.append({"role": "assistant", "content": reply})
         warn_if_incomplete(reply, finish_reason)
 
-
 def main():
     parser = argparse.ArgumentParser(description="Client per modello locale (LM Studio).")
     parser.add_argument("--chat", action="store_true", help="avvia il ciclo di conversazione")
@@ -145,7 +137,6 @@ def main():
         run_chat(base_url, model)
     else:
         run_single(base_url, model)
-
 
 if __name__ == "__main__":
     main()

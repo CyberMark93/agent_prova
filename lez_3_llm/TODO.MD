@@ -15,19 +15,19 @@ Riferimento: confronto tra `client.py`/repository attuale e `LLM_Lez_3.pdf`. Ord
 - **Problema attuale**: `requests.exceptions.RequestException` è gestito in blocco unico → un timeout reale (server vivo ma lento) viene riportato come "server non raggiungibile", messaggio fuorviante.
 - **Fatto** (rif. slide 24 del PDF): tre rami distinti in `send_request()` — `Timeout`, `ConnectionError`, `HTTPError` (con `status_code` e corpo della risposta) — `timeout` passato a tupla `(5, 120)`. Verificato singolarmente contro il server reale: connessione rifiutata, timeout forzato artificialmente, ID modello inesistente (400 con corpo leggibile). Nessun traceback in nessuno dei tre casi.
 
-## 3. Modulo D — Disciplina dei commit — [~] PARZIALE — Opzione 2 adottata, Opzione 1 ancora aperta
+## 3. Modulo D — Disciplina dei commit — [x] COMPLETATO — Opzione 2 scelta in via definitiva
 
 - **Problema originale**: il commit `76ceef7 feat: client LM Studio (singola + chat)` bundla Estensione 1 (input da terminale) ed Estensione 3 (history in memoria) in un solo commit, saltando l'Estensione 2 (streaming, implementata solo dopo — vedi sezione dedicata sotto) e senza diff isolabili per estensione — in contrasto con slide 29/31 ("un commit per estensione verificata").
 - [x] **Opzione 2 applicata**: da questa sessione in avanti, un commit per unità logica. Esempio: `b90131b refactor(client)` (Modulo A), `1d4793f docs(claude)` (correzioni claude.md), `fccb75e docs` (nuovi file di processo) — tre commit distinti invece di uno bundlato, nonostante la richiesta iniziale fosse "un commit intelligente di tutto il progetto".
-- [ ] **Opzione 1 ancora aperta**: il commit storico `76ceef7` resta bundlato e non atomico. Non toccato (riscrivere la cronologia è distruttivo, richiede conferma esplicita separata se lo si vuole fare per la consegna finale).
+- [x] **Opzione 1 scartata in via definitiva**: il commit storico `76ceef7` resta bundlato su `origin/main`. Decisione esplicita dell'utente (non default): nessuna riscrittura di cronologia, nessun force-push.
 
-## 4. Modulo E — Sincronizzazione documentazione — [~] PARZIALE (eseguito fuori ordine su richiesta esplicita)
+## 4. Modulo E — Sincronizzazione documentazione — [x] COMPLETATO, confermato
 
 - [x] `CLAUDE.md` non dichiara più "nessuna cronologia" — obiettivo riscritto per riconoscere `--chat`.
 - [x] `CLAUDE.md` ora contiene le righe "dopo la prima esecuzione verificata" (comando di avvio, nota di verifica manuale) richieste da slide 11.
 - [x] `CLAUDE.md`: regola dipendenze + criterio di approvazione unificati in una checklist riusabile per ogni piano, non più un fatto storico fissato ("nessuna nuova dipendenza" letta alla lettera contraddiceva il Modulo A già confermato).
 - [x] Rimossa da `CLAUDE.md` la domanda FileNotFoundError + criteri di riuscita (contenuto di task, non convenzione di progetto per la tassonomia di slide 10) — la domanda resta documentata in `HOW-TO-USE.md`; i criteri sono già coperti in sostanza dalla tabella errori lì presente.
-- [ ] `README.md` non documenta ancora la modalità `--chat` né lo stack `requests`/`python-dotenv` — **unico punto rimasto del Modulo E**, da fare dopo C e D per riflettere lo stato finale.
+- [x] `README.md` riscritto: dipendenze `requests`/`python-dotenv`, variabile `LM_MODEL`, modalità `--chat`, risposta in streaming, esecuzione con l'interprete della venv. Rimanda a `HOW-TO-USE.md` per i dettagli funzionali (errori, limiti, comportamento sui token).
 
 ## 5. Estensione 2 — Streaming — [x] COMPLETATA, confermata (fuori sequenza A/C/D/E)
 

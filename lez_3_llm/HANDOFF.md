@@ -23,23 +23,20 @@
 |---|---|
 | A — Stack di dipendenze (`requests`+`python-dotenv`, rename `MODEL`→`LM_MODEL`) | **Completato, confermato.** Verificato end-to-end (server giù + risposta reale). |
 | C — Gestione errori HTTP (Timeout/ConnectionError/HTTPError distinti) | **Completato, confermato.** `timeout` passato a tupla `(5, 120)`. Tutti e tre i rami verificati singolarmente contro il server reale: connessione rifiutata, timeout forzato artificialmente, ID modello inesistente (400 con corpo leggibile). |
-| D — Disciplina dei commit | **Parziale, decisione ancora aperta** — vedi "Stato della cronologia Git" sotto. Non confondere con il punto precedente (regola di collaborazione): quella è chiusa, questa no. |
-| E — Sincronizzazione documentazione | **Parziale.** `claude.md` corretto (4 punti: obiettivo, stato client.py, checklist di approvazione, rimozione contenuto di task) e riordinato gerarchicamente. **`README.md` non ancora toccato** — non documenta `--chat` né lo stack `requests`/`python-dotenv`. Unico punto rimasto. |
-| Estensione 2 — Streaming | **Mai implementata.** Confermato leggendo il codice: `build_payload()` ha `"stream": False` fisso, nessuna gestione di eventi SSE. Non bloccante per il criterio minimo del docente (slide 29), ma assente. |
-| Promemoria pulizia finale codice | Dopo D (decisione) ed E (README.md) — vedi fondo di `TODO.MD`. |
+| D — Disciplina dei commit | **Completato, confermato.** Opzione 2 scelta in via definitiva: `76ceef7` resta com'è, nessuna riscrittura di storia. |
+| E — Sincronizzazione documentazione | **Completato, confermato.** `claude.md` corretto (4 punti: obiettivo, stato client.py, checklist di approvazione, rimozione contenuto di task) e riordinato gerarchicamente. `README.md` riscritto: dipendenze reali, `LM_MODEL`, `--chat`, streaming, esecuzione da venv. |
+| Estensione 2 — Streaming | **Completata, confermata.** `send_request()` ora stampa i frammenti via `iter_lines()`/SSE invece di restituire il blocco intero. Verificata in entrambe le modalità. Non fa parte del bundle problematico di `76ceef7` (implementata e committata separatamente in questa sessione). |
+| Promemoria pulizia finale codice | Tutti i moduli (A/C/D/E) ed Estensione 2 sono chiusi — prossimo passo, vedi fondo di `TODO.MD`. |
 
 Dettaglio di ciascun modulo (sintomo, causa, correzione prevista): **vedi `TODO.MD`**, non duplicato qui.
 
-## Stato della cronologia Git — leggere con attenzione, due situazioni distinte da non confondere
+## Stato della cronologia Git
 
 Il repository ha un remoto: `origin → https://github.com/CyberMark93/client.git`.
 
-**Situazione 1 — `76ceef7` (problema originale del Modulo D, irrisolto).** Questo commit storico bundla Estensione 1 (input da terminale) ed Estensione 3 (history in memoria) in una sola diff, saltando l'Estensione 2 (streaming). **È già pushato su `origin/main`.** Due opzioni discusse e non ancora scelte:
-- *Opzione 1*: riscrivere la cronologia (rebase interattivo per separare le due estensioni — non banale, il codice della terza riusa strutturalmente quello della prima) e poi **force-push su `origin/main`**. Rischioso: se qualcun altro ha già fetchato questo repo, la sua copia diverge. Da non eseguire senza una conferma esplicita e separata, specifica per il force-push.
-- *Opzione 2*: non toccare `76ceef7`, accettarlo come debito tecnico documentato. Il criterio minimo del docente (slide 29, "Estensione 1 completata, verificata e salvata con un commit") è comunque soddisfatto nella sostanza anche da questo commit bundlato.
-- **Nessuna delle due è stata scelta.** Non presumere l'Opzione 2 solo perché è quella "di default" — l'utente non ha ancora risposto a questa domanda specifica.
+**`76ceef7` (storico, risolto per decisione esplicita, non riaprire).** Bundla Estensione 1 (input da terminale) ed Estensione 3 (history in memoria) in una sola diff, saltando l'Estensione 2 (streaming, arrivata dopo e committata a parte). È già pushato su `origin/main`. **Decisione presa: Opzione 2** — nessuna riscrittura, nessun force-push, resta così com'è come debito tecnico accettato (il criterio minimo del docente, slide 29, è comunque soddisfatto nella sostanza). Non riproporre la riscrittura salvo l'utente la riapra esplicitamente.
 
-**Situazione 2 — `bf068d9` (commit di processo di questa sessione, RISOLTA, non un problema).** I 5 commit fatti durante questa sessione per i Moduli A/C/E (migrazione dipendenze, fix gestione errori, correzioni `claude.md`, nuovi file `TODO.MD`/`HOW-TO-USE.md`/`HANDOFF.md`) erano stati fatti atomici, poi **squashati deliberatamente in un unico commit** `bf068d9` su richiesta esplicita dell'utente, con un `git reset --soft HEAD~5` + ricommit (sicuro: nessuno dei 5 era stato pushato). **Non è un errore da correggere** — è una scelta consapevole dell'utente, distinta dal problema di `76ceef7`. `bf068d9` non è ancora pushato (`main` è 1 commit avanti a `origin/main`).
+**Commit di processo di questa sessione (non un problema, scelta deliberata).** 5 commit atomici (Moduli A/C + nuovi file di processo) sono stati squashati su richiesta esplicita dell'utente in `bf068d9` (`git reset --soft HEAD~5` + ricommit — sicuro, nessuno era pushato). Dopo quello sono arrivati `a4a0ca0` (HANDOFF.md), `1baaf66` (streaming), `f317314` (sync docs). **`main` locale è ora 4 commit avanti a `origin/main`** (`bf068d9`, `a4a0ca0`, `1baaf66`, `f317314`), nessuno pushato. Nessuna richiesta di push ricevuta finora.
 
 ## File di processo creati in questa collaborazione
 
@@ -51,8 +48,8 @@ Nessuno dei tre è parte della consegna formativa richiesta dal docente (slide 3
 
 ## Attenzione per la prossima sessione
 
-- Non richiedere di nuovo conferme già ottenute: Moduli A e C sono chiusi, non riaprirli senza un motivo esplicito dell'utente.
+- Non richiedere di nuovo conferme già ottenute: Moduli A, C, D, E e l'Estensione 2 (streaming) sono tutti chiusi, non riaprirli senza un motivo esplicito dell'utente.
 - **Non eseguire `git commit` di propria iniziativa** — vedi la regola di collaborazione in cima. Proporre le modifiche, lasciare che sia l'utente a committarle, salvo richiesta esplicita contraria in quella sessione.
-- Prima di proporre codice per D (decisione) o E (`README.md`), rileggere la sezione pertinente di `TODO.MD`.
+- Prossimo passo pianificato: pulizia finale del codice (checklist in fondo a `TODO.MD`), poi la consegna è completa.
 - Se l'utente chiede "a che punto siamo", la risposta è nelle tabelle sopra, non da ricostruire rileggendo tutta la conversazione precedente.
 - Se emerge di nuovo il tema "riscrivere la storia di `76ceef7`", ripresentare il rischio del force-push prima di agire — non è stato accettato in precedenza, solo spiegato.
